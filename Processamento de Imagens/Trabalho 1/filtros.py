@@ -1,3 +1,5 @@
+from tkinter import messagebox
+import tkinter as tk
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -30,18 +32,30 @@ def detector_canny(img):
     gray = converter_cinza(img)
     return cv2.Canny(gray, 100, 200)
 
-def aplicar_morfologia(img):
+def erosao_morfologica(img):
     kernel = np.ones((20,20), np.uint8)
     gray = converter_cinza(img)
-    erosao = cv2.erode(gray, kernel, iterations=1)
-    dilatacao = cv2.dilate(gray, kernel, iterations=1)
-    abertura = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
-    fechamento = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+    resultado = cv2.erode(gray, kernel, iterations=1)
+    mostrar_img(resultado, "Erosão")
 
-    mostrar_img(erosao, "Erosao")
-    mostrar_img(dilatacao, "Dilatacao")
-    mostrar_img(abertura, "Abertura")
-    mostrar_img(fechamento, "Fechamento")
+def dilatacao_morfologica(img):
+    kernel = np.ones((20,20), np.uint8)
+    gray = converter_cinza(img)
+    resultado = cv2.dilate(gray, kernel, iterations=1)
+    mostrar_img(resultado, "Dilatação")
+
+def abertura_morfologica(img):
+    kernel = np.ones((20,20), np.uint8)
+    gray = converter_cinza(img)
+    resultado = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+    mostrar_img(resultado, "Abertura")
+
+def fechamento_morfologico(img):
+    kernel = np.ones((20,20), np.uint8)
+    gray = converter_cinza(img)
+    resultado = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+    mostrar_img(resultado, "Fechamento")
+
 
 def exibir_histograma(img):
     gray = converter_cinza(img)
@@ -49,14 +63,56 @@ def exibir_histograma(img):
     plt.title("Histograma da Imagem")
     plt.show()
 
+
 def calcular_medidas(img):
     binaria = binarizar_otsu(img)
     contornos, _ = cv2.findContours(binaria, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for c in contornos:
+
+    if not contornos:
+        messagebox.showinfo("Resultados", "Nenhum objeto encontrado.")
+        return
+
+    img_resultado = img.copy()
+    resultados = []
+
+    for i, c in enumerate(contornos):
         area = cv2.contourArea(c)
+        if area < 10:
+            continue
         perimetro = cv2.arcLength(c, True)
-        (x, y), raio = cv2.minEnclosingCircle(c)
-        print(f"Área: {area:.2f}, Perímetro: {perimetro:.2f}, Diâmetro: {2*raio:.2f}")
+        x, y, w, h = cv2.boundingRect(c)
+
+        cv2.rectangle(img_resultado, (x, y), (x + w, y + h), (128, 0, 128), 2)
+
+        #idetificação
+        numero_x = x + w // 2 - 10
+        numero_y = y + h // 2 + 10
+        cv2.putText(img_resultado, str(i+1), (numero_x, numero_y),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2, cv2.LINE_AA)
+
+        resultados.append(f"Objeto {i+1}:\n - Área: {area:.2f} pixels\n - Perímetro: {perimetro:.2f} pixels\n - Largura: {w:.2f} pixels\n - Altura: {h:.2f} pixels\n")
+
+    mostrar_img(img_resultado, "Objetos Identificados")
+    
+    janela_resultados = tk.Toplevel()
+    janela_resultados.title(f"Medidas Geométricas ({len(resultados)} objetos)")
+    janela_resultados.geometry("500x400")
+    janela_resultados.configure(bg="white")
+
+    frame = tk.Frame(janela_resultados, bg="white")
+    frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    scrollbar = tk.Scrollbar(frame)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    text_widget = tk.Text(frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                          bg="white", fg="black", font=("Arial", 10),
+                          insertbackground="black", borderwidth=0, highlightthickness=0)
+    text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    scrollbar.config(command=text_widget.yview)
+    text_widget.insert(tk.END, "\n".join(resultados))
+    text_widget.config(state=tk.DISABLED)
 
 def contagem_objetos(img):
     if len(img.shape) == 3:
@@ -98,3 +154,5 @@ def contagem_objetos(img):
 
     mostrar_img(resultado, f"Objetos encontrados: {contador}")
     print(f"Quantidade de objetos encontrados: {contador}")
+
+

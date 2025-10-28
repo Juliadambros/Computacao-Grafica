@@ -47,10 +47,15 @@ def start_image_mode():
     add_button("Converter para níveis de cinza", lambda i: mostrar_img(converter_cinza(i), "Cinza"))
     add_button("Converter para negativo", lambda i: mostrar_img(converter_negativo(i), "Negativo"))
     add_button("Binarizar (Otsu)", lambda i: mostrar_img(binarizar_otsu(i), "Binarizacao"))
-    add_button("Filtros média", lambda i: mostrar_img(filtro_media(i), "Filtro Media"))
-    add_button("Filtros mediana", lambda i: mostrar_img(filtro_mediana(i), "Filtro Mediana"))
+    add_button("Filtro média", lambda i: mostrar_img(filtro_media(i), "Filtro Media"))
+    add_button("Filtro mediana", lambda i: mostrar_img(filtro_mediana(i), "Filtro Mediana"))
     add_button("Detector de bordas (Canny)", lambda i: mostrar_img(detector_canny(i), "Bordas Canny"))
-    add_button("Operações Morfológicas", lambda i: aplicar_morfologia(i))
+
+    add_button("Erosão", erosao_morfologica)
+    add_button("Dilatação", dilatacao_morfologica)
+    add_button("Abertura", abertura_morfologica)
+    add_button("Fechamento", fechamento_morfologico)
+
     add_button("Exibir Histograma", lambda i: exibir_histograma(i))
     add_button("Calcular área, perímetro, diâmetro", lambda i: calcular_medidas(i))
     add_button("Contar Objetos", lambda i: contagem_objetos(i))
@@ -63,5 +68,5 @@ def start_image_mode():
         font=("Arial", 10, "bold"),
         relief="solid",
         borderwidth=1,
-        command=win.destroy
+        command=lambda: (cv2.destroyAllWindows(), win.destroy())
     ).pack(pady=20)
