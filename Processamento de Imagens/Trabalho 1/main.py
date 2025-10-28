@@ -1,4 +1,3 @@
-# main.py
 import tkinter as tk
 from camera import start_camera_mode
 from imagem import start_image_mode

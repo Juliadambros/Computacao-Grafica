@@ -25,10 +25,10 @@ def start_video_mode():
     for path in ref_paths:
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         if img is not None:
-            kp, des = orb.detectAndCompute(img, None)
+            kp, des = orb.detectAndCompute(img, None) #pontos e vetores
             ref_kp_des.append((img, kp, des))
 
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING) #comparação
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
@@ -59,7 +59,7 @@ def start_video_mode():
                     garrafa_detectada = True
                     src_pts = np.float32([kp_ref[m.queryIdx].pt for m in good_matches]).reshape(-1,1,2)
                     dst_pts = np.float32([kp_frame[m.trainIdx].pt for m in good_matches]).reshape(-1,1,2)
-                    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+                    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0) #trasformação geometrica
                     if M is not None:
                         h, w = ref_img.shape
                         pts = np.float32([[0,0],[0,h-1],[w-1,h-1],[w-1,0]]).reshape(-1,1,2)
