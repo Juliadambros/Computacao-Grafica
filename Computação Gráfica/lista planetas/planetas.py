@@ -8,7 +8,7 @@ pygame.init()
 pygame.font.init()
 WIN_W, WIN_H = 1200, 800
 screen = pygame.display.set_mode((WIN_W, WIN_H), DOUBLEBUF | OPENGL)
-pygame.display.set_caption("Sistema Solar Interativo - Julia")
+pygame.display.set_caption("Sistema Solar")
 clock = pygame.time.Clock()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
