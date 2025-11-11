@@ -5,14 +5,12 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 pygame.init()
-pygame.font.init()
 WIN_W, WIN_H = 1200, 800
 screen = pygame.display.set_mode((WIN_W, WIN_H), DOUBLEBUF | OPENGL)
 pygame.display.set_caption("Sistema Solar")
 clock = pygame.time.Clock()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEX_DIR = os.path.join(BASE_DIR, "textures")
 
 def init_gl():
     glViewport(0, 0, WIN_W, WIN_H)
@@ -32,6 +30,9 @@ def init_gl():
     glClearColor(0.01, 0.01, 0.02, 1.0)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
 init_gl()
 
 def load_texture(relpath):
@@ -39,7 +40,7 @@ def load_texture(relpath):
     if not os.path.isfile(path):
         print(f"[WARN] texture not found: {path}")
         return 0
-    surf = pygame.image.load(path)
+    surf = pygame.image.load(path).convert_alpha()  
     surf = pygame.transform.flip(surf, False, True)
     has_alpha = surf.get_bitsize() == 32
     mode = "RGBA" if has_alpha else "RGB"
@@ -87,7 +88,6 @@ spin_speeds = {'sun':0.02,'mercury':0.08,'venus':0.03,'earth':0.2,'moon':0.25,'m
 angles = {k: random.uniform(0,360) for k in orbit_radii.keys()}
 spins = {k: random.uniform(0,360) for k in spin_speeds.keys()}
 
-
 star_list = []
 def generate_stars(n=600):
     star_list.clear()
@@ -104,7 +104,6 @@ def generate_stars(n=600):
         base = random.uniform(0.6,1.0)
         star_list.append([x,y,z,size,phase,color,base])
 generate_stars(600)
-
 
 def draw_sphere(radius, tex_id=0, slices=48, stacks=48):
     quad = gluNewQuadric()
@@ -143,21 +142,6 @@ def draw_ring(inner_r, outer_r, tex_id=0, segments=128):
         glBindTexture(GL_TEXTURE_2D,0)
         glDisable(GL_TEXTURE_2D)
 
-FONT = pygame.font.SysFont("Arial", 16, bold=True)
-def draw_label_world(x,y,z,text):
-    model = glGetDoublev(GL_MODELVIEW_MATRIX)
-    proj  = glGetDoublev(GL_PROJECTION_MATRIX)
-    view  = glGetIntegerv(GL_VIEWPORT)
-    win = gluProject(x, y, z, model, proj, view)
-    if not win:
-        return
-    wx, wy, wz = win
-    surf = FONT.render(text, True, (235,235,235))
-    data = pygame.image.tostring(surf, "RGBA", True)
-    w,h = surf.get_size()
-    glWindowPos2f(int(wx) - w//2, int(wy) - h - 6)
-    glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, data)
-
 camera_distance = 70.0
 camera_az = 25.0
 camera_el = -25.0
@@ -170,7 +154,6 @@ mouse_last_y = 0
 
 paused = False
 show_orbits = True
-show_labels = True
 wireframe = False
 show_starfield = True
 
@@ -238,6 +221,7 @@ def display():
         if name == 'saturn':
             glPushMatrix()
             glRotatef(25,1,0,0)
+            # o anel usa textura com alpha (se tiver)
             draw_ring(planet_scales['saturn']*1.05, planet_scales['saturn']*2.8, textures.get('saturn_ring'), segments=120)
             glPopMatrix()
         glPopMatrix()
@@ -254,30 +238,6 @@ def display():
     draw_sphere(planet_scales['moon'], textures.get('moon',0), slices=24, stacks=24)
     glPopMatrix()
     glPopMatrix()
-
-    if show_labels:
-        for name in list(orbit_radii.keys()) + ['sun']:
-            if name == 'sun':
-                x,y,z = 0.0, planet_scales['sun']+1.0, 0.0
-            else:
-                ang = angles.get(name, 0.0)
-                r = orbit_radii.get(name, 0.0)
-                x = math.cos(math.radians(ang))*r
-                y = planet_scales.get(name,1.0) + 0.4
-                z = math.sin(math.radians(ang))*r
-            draw_label_world(x, y, z, name.capitalize())
-
-    hud_lines = [
-        "Controles: mouse arrasta = rotacionar, botão direito = pan, roda = zoom",
-        "Teclas: p=pausar, o=órbitas, l=rótulos, w=wireframe, s=estrelas, ESC=sair"
-    ]
-    y0 = WIN_H - 18
-    for i, line in enumerate(hud_lines):
-        surf = FONT.render(line, True, (220,220,220))
-        data = pygame.image.tostring(surf, "RGBA", True)
-        w,h = surf.get_size()
-        glWindowPos2f(8, y0 - (i*(h+4)))
-        glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, data)
 
     pygame.display.flip()
 
@@ -304,7 +264,7 @@ last_mouse = (0,0)
 
 def handle_events():
     global mouse_left, mouse_right, last_mouse
-    global camera_el, camera_az, camera_distance, camera_pan_x, camera_pan_y, paused, show_orbits, show_labels, wireframe, show_starfield
+    global camera_el, camera_az, camera_distance, camera_pan_x, camera_pan_y, paused, show_orbits, wireframe, show_starfield
     for e in pygame.event.get():
         if e.type == QUIT:
             pygame.quit(); raise SystemExit()
@@ -315,8 +275,6 @@ def handle_events():
                 paused = not paused
             elif e.key == K_o:
                 show_orbits = not show_orbits
-            elif e.key == K_l:
-                show_labels = not show_labels
             elif e.key == K_w:
                 wireframe = not wireframe
             elif e.key == K_s:
@@ -356,7 +314,3 @@ try:
         display()
 except SystemExit:
     pass
-
-
-
-
