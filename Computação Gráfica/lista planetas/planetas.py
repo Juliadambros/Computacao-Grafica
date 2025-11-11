@@ -1,3 +1,5 @@
+#Ana Júlia e Júlia
+
 import os, math, random, time
 import pygame
 from pygame.locals import *
