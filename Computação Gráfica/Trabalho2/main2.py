@@ -164,7 +164,7 @@ paused = False
 show_orbits = True
 wireframe = False
 show_starfield = True
-show_grid = False   #aqui para vizulizar o grid
+show_grid = True   #aqui para vizulizar o grid
 
 frames = 0; fps = 0; fps_time = time.time()
 clock = pygame.time.Clock()
@@ -799,7 +799,7 @@ def render_scene():
             glPopMatrix()
 
 
-def draw_beautiful_button(x, y, width, height, text, color=(0.2,0.6,0.8), hover=False):
+def draw_button(x, y, width, height, text, color=(0.2,0.6,0.8), hover=False):
     base = 0.45 if not hover else 0.65
     glBegin(GL_QUADS)
     glColor3f(base, base, base)
@@ -876,7 +876,7 @@ def draw_menu():
     by = WIN_H // 2 - 30  
     
     hover = (bx <= mouse_x <= bx + 350 and by <= ogl_y <= by + 60)
-    draw_beautiful_button(bx, by, 350, 60, "COMEÇAR MISSÃO", hover=hover)
+    draw_button(bx, by, 350, 60, "COMEÇAR MISSÃO", hover=hover)
 
     glEnable(GL_LIGHTING)
     glEnable(GL_DEPTH_TEST)
@@ -953,7 +953,7 @@ def draw_level_intro():
     start_rect = pygame.Rect((WIN_W - 300)//2, WIN_H//2 - 50, 300, 60)
     hover_start = start_rect.collidepoint(mouse_x, ogl_y)
     
-    draw_beautiful_button(start_rect.x, start_rect.y, start_rect.width, start_rect.height,
+    draw_button(start_rect.x, start_rect.y, start_rect.width, start_rect.height,
                          "COMEÇAR MISSÃO", hover=hover_start)
 
     glEnable(GL_LIGHTING)
@@ -1015,13 +1015,13 @@ def draw_level_complete():
     if current_level_index + 1 <= len(level_sequence):
         next_rect = pygame.Rect((WIN_W - 250)//2, WIN_H//2, 250, 60)
         hover_next = next_rect.collidepoint(mouse_x, ogl_y)
-        draw_beautiful_button(next_rect.x, next_rect.y, next_rect.width, next_rect.height, 
+        draw_button(next_rect.x, next_rect.y, next_rect.width, next_rect.height, 
                             next_text, (0.2, 0.7, 0.3), hover_next)
    
     menu_y = WIN_H//2 + 80 if current_level_index + 1 <= len(level_sequence) else WIN_H//2
     menu_rect = pygame.Rect((WIN_W - 250)//2, menu_y, 250, 60)
     hover_menu = menu_rect.collidepoint(mouse_x, ogl_y)
-    draw_beautiful_button(menu_rect.x, menu_rect.y, menu_rect.width, menu_rect.height, 
+    draw_button(menu_rect.x, menu_rect.y, menu_rect.width, menu_rect.height, 
                         "Voltar ao Menu", (0.7, 0.2, 0.2), hover_menu)
 
     glEnable(GL_LIGHTING)
@@ -1061,13 +1061,13 @@ def draw_game_over():
     retry_y = WIN_H//2 - 40
     retry_rect = pygame.Rect(button_x, retry_y, button_w, button_h)
     hover_retry = retry_rect.collidepoint(mouse_x, ogl_y)
-    draw_beautiful_button(button_x, retry_y, button_w, button_h,
+    draw_button(button_x, retry_y, button_w, button_h,
                           "Jogar Novamente", hover_retry)
 
     menu_y = retry_y - 80
     menu_rect = pygame.Rect(button_x, menu_y, button_w, button_h)
     hover_menu = menu_rect.collidepoint(mouse_x, ogl_y)
-    draw_beautiful_button(button_x, menu_y, button_w, button_h,
+    draw_button(button_x, menu_y, button_w, button_h,
                           "Voltar ao Menu", hover_menu)
 
     title_font = pygame.font.SysFont("Arial", 64, bold=True)
@@ -1153,7 +1153,7 @@ def draw_final_celebration():
     menu_rect = pygame.Rect((WIN_W - 350)//2, WIN_H//2 - 30, 350, 70)
     hover_menu = menu_rect.collidepoint(mouse_x, ogl_y)
     
-    draw_beautiful_button(menu_rect.x, menu_rect.y, menu_rect.width, menu_rect.height,
+    draw_button(menu_rect.x, menu_rect.y, menu_rect.width, menu_rect.height,
                          "VOLTAR AO MENU PRINCIPAL", hover=hover_menu)
 
     glEnable(GL_LIGHTING)
