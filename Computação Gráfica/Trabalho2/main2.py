@@ -12,6 +12,11 @@ clock = pygame.time.Clock()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+GRID_COLS = 8
+GRID_ROWS = 5
+GRID_CELL_WIDTH = 6.0
+GRID_CELL_DEPTH = 6.0
+
 def init_gl():
     glViewport(0, 0, WIN_W, WIN_H)
     glMatrixMode(GL_PROJECTION)
@@ -159,6 +164,7 @@ paused = False
 show_orbits = True
 wireframe = False
 show_starfield = True
+show_grid = False   #aqui para vizulizar o grid
 
 frames = 0; fps = 0; fps_time = time.time()
 clock = pygame.time.Clock()
@@ -181,25 +187,39 @@ class FallingObject:
 
 class Player:
     def __init__(self):
-        self.x = 0.0
-        self.y = -8.0   
-        self.z = -15.0  
+        self.grid_x = 3
+        self.grid_z = 2
+        self.y = -8.0
         self.width = 4.0
-        self.radius = 2.5
+        self.radius = 3.5 
         self.score = 0
         self.lives = 3
-        self.move_speed = 25.0  
-
-        self.min_x, self.max_x = -25.0, 25.0
-        self.min_z, self.max_z = -30.0, 20.0
-
-    def move_by(self, dx, dz):
-        self.x = max(self.min_x, min(self.max_x, self.x + dx))
-        self.z = max(self.min_z, min(self.max_z, self.z + dz))
-
-    def set_position(self, x, z):
-        self.x = max(self.min_x, min(self.max_x, x))
-        self.z = max(self.min_z, min(self.max_z, z))
+        self.move_cooldown = 0.0
+        
+        self.min_x = -((GRID_COLS * GRID_CELL_WIDTH) / 2)
+        self.max_x = ((GRID_COLS * GRID_CELL_WIDTH) / 2)
+        self.min_z = -((GRID_ROWS * GRID_CELL_DEPTH) / 2) - 5.0
+        self.max_z = ((GRID_ROWS * GRID_CELL_DEPTH) / 2) - 5.0
+        
+        self.update_position_from_grid()
+    
+    def update_position_from_grid(self):
+        self.x = (self.grid_x - (GRID_COLS-1)/2) * GRID_CELL_WIDTH
+        self.z = (self.grid_z - (GRID_ROWS-1)/2) * GRID_CELL_DEPTH - 10.0
+    
+    def move_grid(self, dx, dz):
+        new_x = max(0, min(GRID_COLS-1, self.grid_x + dx))
+        new_z = max(0, min(GRID_ROWS-1, self.grid_z + dz))
+        
+        if new_x != self.grid_x or new_z != self.grid_z:
+            self.grid_x = new_x
+            self.grid_z = new_z
+            self.update_position_from_grid()
+            return True
+        return False
+    
+    def get_grid_position(self):
+        return (self.grid_x, self.grid_z)
 
 player = Player()
 
@@ -238,8 +258,12 @@ def start_level(planet):
     level_goal = cfg['present_goal']
     level_start_time = time.time()
     level_time_left = cfg['time_limit']
-    player.set_position(0.0, -15.0)
-    state = 'level_intro'  
+    
+    player.grid_x = 3
+    player.grid_z = 2
+    player.update_position_from_grid()
+    
+    state = 'level_intro'
 
 def end_level(won):
     global state, completed_levels, current_level_index, confetti_particles, earth_rotation
@@ -318,18 +342,45 @@ def update_confetti(dt):
             confetti['vz'] = random.uniform(-2, 2)
 
 def spawn_present(fall_speed):
-    x = random.uniform(player.min_x - 3.0, player.max_x + 3.0)
-    z = random.uniform(-15.0, 15.0) 
+    grid_x = random.randint(0, GRID_COLS-1)
+
+    x = (grid_x - (GRID_COLS-1)/2) * GRID_CELL_WIDTH
+    
+    grid_z = random.randint(0, GRID_ROWS-1)
+    z = (grid_z - (GRID_ROWS-1)/2) * GRID_CELL_DEPTH - 10.0
+    
     y = random.uniform(25.0, 40.0)
-    vx, vy, vz = random.uniform(-0.5,0.5), fall_speed, random.uniform(-0.3,0.3)
+    
+    vx = random.uniform(-0.5, 0.5)
+    vy = fall_speed
+    vz = random.uniform(-0.3, 0.3)
+    
     o = FallingObject((x,y,z),(vx,vy,vz),'present')
     objects.append(o)
 
 def spawn_meteor(fall_speed):
-    x = random.uniform(player.min_x - 5.0, player.max_x + 5.0)
-    z = random.uniform(-20.0, 20.0)
+    grid_x = random.randint(0, GRID_COLS-1)
+    
+    x = (grid_x - (GRID_COLS-1)/2) * GRID_CELL_WIDTH
+    grid_z = random.randint(0, GRID_ROWS-1)
+    z = (grid_z - (GRID_ROWS-1)/2) * GRID_CELL_DEPTH - 10.0
     y = random.uniform(35.0, 50.0)
-    vx, vy, vz = random.uniform(-2.0,2.0), fall_speed*1.3, random.uniform(-1.5,1.5)
+    
+    vx = random.uniform(-1.0, 1.0)
+    vy = fall_speed * 1.3
+    vz = random.uniform(-0.8, 0.8)
+    
+    o = FallingObject((x,y,z),(vx,vy,vz),'meteor')
+    objects.append(o)
+
+def spawn_meteor(fall_speed):
+    grid_x = random.randint(0, GRID_COLS-1)
+    
+    x = (grid_x - (GRID_COLS-1)/2) * GRID_CELL_WIDTH
+    z = -((GRID_ROWS * GRID_CELL_DEPTH) / 2) - 5.0  
+    y = random.uniform(35.0, 50.0)
+    
+    vx, vy, vz = 0, fall_speed*1.3, 0
     o = FallingObject((x,y,z),(vx,vy,vz),'meteor')
     objects.append(o)
 
@@ -352,19 +403,34 @@ def update_game(dt):
         o.update(dt)
         if o.y < -35.0:
             to_remove.append(o)
+        
         dx = o.x - player.x
         dz = o.z - player.z
         dy = o.y - player.y
-        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
-        if o.kind == 'present' and dist < (o.radius + player.radius):
-            level_collected += 1
-            player.score += 10
-            o.collected = True
-            to_remove.append(o)
-        if o.kind == 'meteor' and dist < (o.radius + player.radius):
-            player.lives -= 1
-            o.collected = True
-            to_remove.append(o)
+        
+        dist_3d = math.sqrt(dx*dx + dy*dy + dz*dz)
+        
+        obj_grid_x = int(round((o.x / GRID_CELL_WIDTH) + (GRID_COLS-1)/2))
+        obj_grid_z = int(round((o.z / GRID_CELL_DEPTH) + (GRID_ROWS-1)/2))
+        
+        collision_by_grid = (obj_grid_x == player.grid_x and 
+                           obj_grid_z == player.grid_z and 
+                           abs(o.y - player.y) < 10.0)  
+        
+        collision_by_distance = (dist_3d < (o.radius + player.radius + 2.0)) 
+        
+        if collision_by_grid or collision_by_distance:
+            if o.kind == 'present' and not o.collected:
+                level_collected += 1
+                player.score += 10
+                o.collected = True
+                to_remove.append(o)
+                print(f"Presente coletado! Total: {level_collected}/{level_goal}")  
+            elif o.kind == 'meteor' and not o.collected:
+                player.lives -= 1
+                o.collected = True
+                to_remove.append(o)
+                print(f"Meteoro! Vidas: {player.lives}")  
 
     for o in to_remove:
         if o in objects:
@@ -402,11 +468,21 @@ def draw_hud():
 
     draw_text_2d(10, WIN_H-30, f"Score: {player.score}")
     draw_text_2d(200, WIN_H-30, f"Collected: {level_collected}/{level_goal}")
+    draw_text_2d(400, WIN_H-30, f"Position: ({player.grid_x}, {player.grid_z})")
+    draw_text_2d(550, WIN_H-30, f"Objects: {len(objects)}") 
+    
+    if len(objects) > 0:
+        first_obj = objects[0]
+        draw_text_2d(10, WIN_H-60, f"Obj0: ({first_obj.x:.1f}, {first_obj.y:.1f}, {first_obj.z:.1f})")
+        obj_grid_x = int(round((first_obj.x / GRID_CELL_WIDTH) + (GRID_COLS-1)/2))
+        obj_grid_z = int(round((first_obj.z / GRID_CELL_DEPTH) + (GRID_ROWS-1)/2))
+        draw_text_2d(10, WIN_H-90, f"Obj0 Grid: ({obj_grid_x}, {obj_grid_z})")
+
     if planet_configs[current_planet]['time_limit'] > 0:
-        draw_text_2d(420, WIN_H-30, f"Time left: {int(level_time_left)}s")
+        draw_text_2d(750, WIN_H-30, f"Time left: {int(level_time_left)}s")
     
     if current_planet != 'mars':
-        draw_text_2d(650, WIN_H-30, f"Lives: {player.lives}")
+        draw_text_2d(900, WIN_H-30, f"Lives: {player.lives}")
 
     draw_text_2d(WIN_W-320, WIN_H-30, "ESC - Menu  |  P - Pausa  |  WASD/Setas - Mover  |  Mouse - Câmera")
 
@@ -586,6 +662,30 @@ def draw_confetti():
         glPopMatrix()
     glEnable(GL_LIGHTING)
 
+def draw_grid():
+    if not show_grid:
+        return
+        
+    glDisable(GL_LIGHTING)
+    glColor3f(0.3, 0.3, 0.3)
+    glLineWidth(1.0)
+    
+    for col in range(GRID_COLS + 1):
+        x = (col - GRID_COLS/2) * GRID_CELL_WIDTH
+        glBegin(GL_LINES)
+        glVertex3f(x, -12, player.min_z)
+        glVertex3f(x, -12, player.max_z)
+        glEnd()
+    
+    for row in range(GRID_ROWS + 1):
+        z = (row - GRID_ROWS/2) * GRID_CELL_DEPTH - 10.0
+        glBegin(GL_LINES)
+        glVertex3f(player.min_x, -12, z)
+        glVertex3f(player.max_x, -12, z)
+        glEnd()
+    
+    glEnable(GL_LIGHTING)
+
 def render_game_objects():
     if state != 'playing':
         return
@@ -646,6 +746,7 @@ def render_scene():
 
     if state == "playing":
         render_level_background()
+        draw_grid() 
         render_game_objects()
     elif state == "final_celebration":
         glPushMatrix()
@@ -760,7 +861,7 @@ def draw_menu():
     instructions = [
         "PRECISAMOS DE SUA AJUDA PARA RECUPERAR OS PRESENTES QUE CAÍRAM DA NAVE!",
         "Utilize as setas ou WASD para movimentar o trenó e passe as fases.",
-        "Evite meteoros e colete o número de presentes necessários em cada fase."
+        "Evite meteoros e colete o número de presentes necessários em cada fase.",
     ]
     for i, instruction in enumerate(instructions):
         inst_surf = instruction_font.render(instruction, True, (255, 255, 200))
@@ -817,7 +918,7 @@ def draw_level_intro():
         instructions = [
             "OBJETIVO: Colete 3 presentes!",
             "Esta é sua primeira missão. Aprenda a controlar o trenó:",
-            "- Use WASD ou SETAS para se mover",
+            "- Use WASD ou SETAS para se mover no grid 8x5",
             "- Mouse para rotacionar a câmera", 
             "- Cuidado: Você tem apenas 30 segundos!",
             "Foco na velocidade e precisão!"
@@ -1087,7 +1188,7 @@ def check_game_over_click(mx, my):
 
 def handle_events():
     global mouse_left, mouse_right, last_mouse, left_drag_mode
-    global camera_el, camera_az, camera_distance, camera_pan_x, camera_pan_y, paused, show_orbits, wireframe, show_starfield, state
+    global camera_el, camera_az, camera_distance, camera_pan_x, camera_pan_y, paused, show_orbits, wireframe, show_starfield, state, show_grid
     global current_level_index
     
     for e in pygame.event.get():
@@ -1107,6 +1208,8 @@ def handle_events():
                 wireframe = not wireframe
             elif e.key == K_s:
                 show_starfield = not show_starfield
+            elif e.key == K_g:  
+                show_grid = not show_grid
         if e.type == MOUSEBUTTONDOWN:
             if e.button == 1:
                 mouse_left = True
@@ -1265,21 +1368,26 @@ def main():
         handle_events()
         if state == 'playing' and not paused:
             keys = pygame.key.get_pressed()
-            move_dx = 0.0; move_dz = 0.0
-            speed = player.move_speed * dt
-        
-            if keys[K_a] or keys[K_LEFT]:
-                move_dx -= speed
-            if keys[K_d] or keys[K_RIGHT]:
-                move_dx += speed
             
-            if keys[K_w] or keys[K_UP]:
-                move_dz += speed  
-            if keys[K_s] or keys[K_DOWN]:
-                move_dz -= speed  
+            player.move_cooldown -= dt
             
-            if move_dx != 0.0 or move_dz != 0.0:
-                player.move_by(move_dx, move_dz)
+            if player.move_cooldown <= 0:
+                moved = False
+                if keys[K_a] or keys[K_LEFT]:
+                    if player.move_grid(-1, 0):
+                        moved = True
+                if keys[K_d] or keys[K_RIGHT]:
+                    if player.move_grid(1, 0):
+                        moved = True
+                if keys[K_w] or keys[K_UP]:
+                    if player.move_grid(0, -1):
+                        moved = True
+                if keys[K_s] or keys[K_DOWN]:
+                    if player.move_grid(0, 1):
+                        moved = True
+                
+                if moved:
+                    player.move_cooldown = 0.2  
 
         update_global(dt)
         update_game(dt)
